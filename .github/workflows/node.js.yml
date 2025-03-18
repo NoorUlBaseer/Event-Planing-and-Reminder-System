@@ -8,7 +8,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     services:
@@ -16,7 +15,11 @@ jobs:
         image: mongo:4.4
         ports:
           - 27017:27017
-        options: --bind_ip_all --quiet
+        options: >-
+          --health-cmd="mongo --eval 'db.adminCommand(\"ping\")'" 
+          --health-interval=10s 
+          --health-timeout=5s 
+          --health-retries=5
 
     steps:
     - uses: actions/checkout@v3
@@ -29,5 +32,12 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    - name: Run Tests
+    - name: Wait for MongoDB to be ready
+      run: |
+        until nc -z localhost 27017; do
+          echo "Waiting for MongoDB..."
+          sleep 2
+        done
+
+    - name: Run tests
       run: npm test
